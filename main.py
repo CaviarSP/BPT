@@ -34,7 +34,7 @@ class BPT(BasePlugin):
         msgc = ctx.event.message_chain  # 这里的 event 即为 PersonNormalMessageReceived 的对象
 
         if msgc.get_first(Plain) == Plain("新建表格"):
-            wecomapi = wecomAPI(corpid=self.corpid,appsecret=self.appsecret,docid=self.docid)
+            wecomapi = wecomAPI()
             res = wecomapi.create_doc(type_id=10,name="血压记录v1")
             print("血压记录v1--",res.json())
 
@@ -88,7 +88,7 @@ class BPT(BasePlugin):
         match = re.search(pattern,text)
         if match:
             #print('match')
-            wecomapi = wecomAPI(corpid=self.corpid,appsecret=self.appsecret,docid=self.docid)
+            wecomapi = wecomAPI()
             d1, d2, d3 = match.group().split("#")
             now = datetime.now()
             ym_str = now.strftime(r"%Y-%m")
