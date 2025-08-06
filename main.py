@@ -13,9 +13,13 @@ import yaml
 # 注册插件
 @register(name="BPT", description="record blood pressure", version="0.1", author="Caviar")
 class BPT(BasePlugin):
-
+    gemini_key = ''
     # 插件加载时触发
     def __init__(self, host: APIHost):
+        path = '/app/plugins/BPT/config.yaml'
+        with open(path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        self.gemini_key = config.get('gemini_key', '')
         pass
 
     # 异步初始化
