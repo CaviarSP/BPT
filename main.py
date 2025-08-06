@@ -20,10 +20,6 @@ class BPT(BasePlugin):
 
     # 插件加载时触发
     def __init__(self, host: APIHost):
-        self.docid = self.config["docid"]
-        self.corpid = self.config["corpid"]
-        self.appsecret = self.config["appsecret"]
-        self.appsecret = self.config["gemini_key"]
         pass
 
     # 异步初始化
