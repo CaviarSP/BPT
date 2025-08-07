@@ -1,6 +1,6 @@
 from pkg.plugin.context import register, handler, BasePlugin, APIHost, EventContext
 from pkg.plugin.events import *  # 导入事件类
-from pkg.platform.types import MessageChain,Plain,Image
+from pkg.platform.types import MessageChain,Plain,Image,MessageEvent
 from google import genai
 from google.genai import types
 import base64
@@ -28,11 +28,14 @@ class BPT(BasePlugin):
 
 
     @handler(PersonMessageReceived)
-    async def person_normal_message_received(self, ctx: EventContext):
+    async def person_normal_message_received(self, ctx: EventContext,message_event:MessageEvent):
        
         msgc: MessageChain
         msgc = ctx.event.message_chain  # 这里的 event 即为 PersonNormalMessageReceived 的对象
-
+        if msgc.get_first(Plain) == Plain("测试"):
+            print(message_event.source_platform_object.agent_id)
+            await ctx.reply([message_event.source_platform_object.agent_id])
+            
         if msgc.get_first(Plain) == Plain("新建表格"):
             wecomapi = wecomAPI()
             res = wecomapi.create_doc(type_id=10,name="血压记录v1")
