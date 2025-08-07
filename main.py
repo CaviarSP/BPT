@@ -41,6 +41,7 @@ class BPT(BasePlugin):
         if str(msgc.get_first(Plain)).startswith("新建表格"):
             corpid = ctx.event.query.adapter.config["corpid"]
             appsecret = ctx.event.query.adapter.config["secret"]
+            print(corpid,appsecret)
             wecomapi = wecomAPI(corpid,appsecret)
 
             name = str(msgc.get_first(Plain)).strip("新建表格")
@@ -133,9 +134,11 @@ class wecomAPI():
             config = yaml.safe_load(f)
         self.corpid = corpid
         self.appsecret = appsecret
-        self.docid = config.get(appsecret, '')
+        try:
+            self.docid = config.get(appsecret, '')
+        except:pass
         #self.access_token = self.get_access_token()
-        pass
+
 
     def get_access_token(self):
         url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={self.corpid}&corpsecret={self.appsecret}'
@@ -160,6 +163,7 @@ class wecomAPI():
         with open(path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         config[self.appsecret] = docid
+        self.docid = docid
         with open(path, 'w', encoding='utf-8') as f:
             yaml.safe_dump(config, f, allow_unicode=True)
         return res
