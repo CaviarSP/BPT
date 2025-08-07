@@ -1,6 +1,6 @@
 from pkg.plugin.context import register, handler, BasePlugin, APIHost, EventContext
 from pkg.plugin.events import *  # 导入事件类
-from pkg.platform.types import MessageChain,Plain,Image,MessageEvent
+from pkg.platform.types import MessageChain,Plain,Image
 from google import genai
 from google.genai import types
 import base64
@@ -28,18 +28,24 @@ class BPT(BasePlugin):
 
 
     @handler(PersonMessageReceived)
-    async def person_normal_message_received(self, ctx: EventContext,message_event:MessageEvent):
+    async def person_normal_message_received(self, ctx: EventContext):
        
         msgc: MessageChain
-        msgc = ctx.event.message_chain  # 这里的 event 即为 PersonNormalMessageReceived 的对象
+        msgc = ctx.event.message_chain  # 这里的 event 即为 PersonMessageReceived 的对象
+
         if msgc.get_first(Plain) == Plain("测试"):
-            print(message_event.source_platform_object.agent_id)
-            await ctx.reply([message_event.source_platform_object.agent_id])
-            
-        if msgc.get_first(Plain) == Plain("新建表格"):
-            wecomapi = wecomAPI()
-            res = wecomapi.create_doc(type_id=10,name="血压记录v1")
-            print("血压记录v1--",res.json())
+            print(ctx.event.query.adapter.config["secret"])
+            await ctx.reply([ctx.event.query.adapter.config["secret"]])
+
+
+        if str(msgc.get_first(Plain)).startswith("新建表格"):
+            corpid = ctx.event.query.adapter.config["corpid"]
+            appsecret = ctx.event.query.adapter.config["secret"]
+            wecomapi = wecomAPI(corpid,appsecret)
+
+            name = str(msgc.get_first(Plain)).strip("新建表格")
+            res = wecomapi.create_doc(type_id=10,name=name)
+            print(name,"--",res.json())
 
         if msgc.get_first(Image): 
             image_base64=msgc.get_first(Image).base64
@@ -62,12 +68,13 @@ class BPT(BasePlugin):
                 contents=[my_file, prompt],
             )
             print(response.text)
-            self.form_data(response.text)
+            
+            corpid = ctx.event.query.adapter.config["corpid"]
+            appsecret = ctx.event.query.adapter.config["secret"]
+            self.form_data(response.text,corpid,appsecret)
 
 
             await ctx.reply( [response.text] )
-
-
             ctx.prevent_default()
 
     # 当收到个人消息时触发
@@ -86,12 +93,12 @@ class BPT(BasePlugin):
 
 
         
-    def form_data(self,text):
+    def form_data(self,text,corpid:str,appsecret:str):
         pattern = r"\b\d{2,3}#\d{2,3}#\d{2,3}\b"
         match = re.search(pattern,text)
         if match:
             #print('match')
-            wecomapi = wecomAPI()
+            wecomapi = wecomAPI(corpid,appsecret)
             d1, d2, d3 = match.group().split("#")
             now = datetime.now()
             ym_str = now.strftime(r"%Y-%m")
@@ -120,14 +127,14 @@ class wecomAPI():
     appsecret = ""
     access_token = ''
     docid = '' #v1
-    def __init__(self):
+    def __init__(self,corpid:str,appsecret:str):
         path = '/app/plugins/BPT/config.yaml'
         with open(path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-        self.corpid = config.get('corpid', '')
-        self.appsecret = config.get('appsecret', '')
-        self.docid = config.get('docid', '')
-        self.access_token = ''
+        self.corpid = corpid
+        self.appsecret = appsecret
+        self.docid = config.get(appsecret, '')
+        #self.access_token = self.get_access_token()
         pass
 
     def get_access_token(self):
@@ -147,6 +154,14 @@ class wecomAPI():
             "doc_name": name,
             }
         res = requests.post(post,json=payload)
+        docid = res.json()["docid"]
+
+        path = '/app/plugins/BPT/config.yaml'
+        with open(path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        config[self.appsecret] = docid
+        with open(path, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(config, f, allow_unicode=True)
         return res
     
     def get_sheet(self):
